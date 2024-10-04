@@ -114,3 +114,47 @@ func AddUser(d Userdata) int {
 
 	return userID
 }
+
+// deleteUser удаляет существующего юзера
+func DeleteUser(id int) error {
+	db, err := openConnection()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	//Существует ли идентификатор?
+	statement := fmt.Sprintf(`SELECT "username" FROM "users" where id = %d`, id)
+	rows, err := db.Query(statement)
+	if err != nil {
+		return err
+	}
+	var username string
+	for rows.Next() {
+		err = rows.Scan(&username)
+		if err != nil {
+			return err
+		}
+	}
+	defer rows.Close()
+
+	if exists(username) != id {
+		return fmt.Errorf("User with ID %d does not exist", id)
+	}
+
+	// удалить из Userdata
+	deleteStatement := `delete from "userdata" where userid=$1`
+	_, err = db.Exec(deleteStatement, id)
+	if err != nil {
+		return err
+	}
+
+	// удалить из User
+	deleteStatement = `delete from "users" where id=$1`
+	_, err = db.Exec(deleteStatement, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
