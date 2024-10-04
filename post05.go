@@ -56,6 +56,10 @@ func exists(username string) int {
 	userID := -1
 	statement := fmt.Sprintf(`SELECT "id" FROM "users" where username = '%s'`, username)
 	rows, err := db.Query(statement)
+	if err != nil {
+		fmt.Println(err)
+		return -1
+	}
 
 	for rows.Next() {
 		var id int
