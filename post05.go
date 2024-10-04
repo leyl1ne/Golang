@@ -2,6 +2,7 @@ package post05
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -152,6 +153,62 @@ func DeleteUser(id int) error {
 	// удалить из User
 	deleteStatement = `delete from "users" where id=$1`
 	_, err = db.Exec(deleteStatement, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func LisetUsers() ([]Userdata, error) {
+	Data := []Userdata{}
+	db, err := openConnection()
+	if err != nil {
+		return Data, err
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`SELECT
+	"id","username","name","surname","description"
+	FROM "users", "userdata" WHERE users.id = userdata.userid`)
+	if err != nil {
+		return Data, err
+	}
+
+	for rows.Next() {
+		var id int
+		var username string
+		var name string
+		var surname string
+		var description string
+		err = rows.Scan(&id, &username, &name, &surname, &description)
+		temp := Userdata{ID: id, Username: username, Name: name, Surname: surname, Description: description}
+
+		Data = append(Data, temp)
+		if err != nil {
+			return Data, err
+		}
+	}
+	defer rows.Close()
+	return Data, nil
+}
+
+// UpdateUser предназначена для обнавления данных существующего пользователя
+func UpdateUser(d Userdata) error {
+	db, err := openConnection()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	userID := exists(d.Username)
+	if userID == -1 {
+		return errors.New("User does not exist")
+	}
+
+	d.ID = userID
+	updateStatement := `update "userdata" set "name"=$1, "surname"=$2, "description"=$3 where "userid"=$4`
+	_, err = db.Exec(updateStatement, d.Name, d.Surname, d.Description, d.ID)
 	if err != nil {
 		return err
 	}
